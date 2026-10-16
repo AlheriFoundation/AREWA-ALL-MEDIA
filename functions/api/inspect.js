@@ -1,3 +1,5 @@
+import { readFetchJsonBody } from '../../lib/request-body.js';
+
 const PROVIDERS = [
   { id: 'tiktok', label: 'TikTok', hosts: ['tiktok.com', 'www.tiktok.com'] },
   { id: 'instagram', label: 'Instagram', hosts: ['instagram.com', 'www.instagram.com'] },
@@ -82,19 +84,7 @@ export function isUnsafeDestination(hostname) {
 }
 
 async function readJsonBody(request) {
-  const declaredLength = Number(request.headers.get('content-length'));
-  if (Number.isFinite(declaredLength) && declaredLength > MAX_BODY_BYTES) throw new Error('REQUEST_BODY_TOO_LARGE');
-  if (!request.body) return {};
-  const reader = request.body.getReader(); const chunks = []; let total = 0;
-  while (true) {
-    const { done, value } = await reader.read(); if (done) break;
-    total += value.byteLength;
-    if (total > MAX_BODY_BYTES) { await reader.cancel(); throw new Error('REQUEST_BODY_TOO_LARGE'); }
-    chunks.push(value);
-  }
-  const bytes = new Uint8Array(total); let offset = 0;
-  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
-  return JSON.parse(new TextDecoder().decode(bytes));
+  return readFetchJsonBody(request, MAX_BODY_BYTES);
 }
 
 const isPublicHostname = (hostname) => !isUnsafeDestination(hostname);
@@ -109,7 +99,7 @@ export function recognizeProvider(raw) {
 export async function onRequestPost(context) {
   const address = context.request.headers.get('CF-Connecting-IP') || 'unknown';
   if (!rateLimiter.allow(address)) return json({ error: 'Too many requests. Please wait a minute and try again.' }, 429);
-  let body; try { body = await readJsonBody(context.request); } catch (error) { return json({ error: error.message === 'REQUEST_BODY_TOO_LARGE' ? 'Request body is too large.' : 'Send a valid JSON body containing a URL.' }, error.message === 'REQUEST_BODY_TOO_LARGE' ? 413 : 400); }
+  let body; try { body = await readJsonBody(context.request); } catch (error) { return json({ error: error.code === 'REQUEST_BODY_TOO_LARGE' ? 'Request body is too large.' : 'Send a valid JSON body containing a URL.' }, error.code === 'REQUEST_BODY_TOO_LARGE' ? 413 : 400); }
   const result = recognizeProvider(body?.url);
   if (result.error) return json({error: result.error}, 400);
   // No provider credential is shipped in this project. This is intentionally honest until an authorized API is configured.
