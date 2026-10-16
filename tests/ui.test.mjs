@@ -21,6 +21,10 @@ test('frontend separates social inspection from direct-file downloading', () => 
   assert.match(app, /fetch\('\/api\/inspect'/);
   assert.match(app, /fetch\('\/api\/download'/);
   assert.match(app, /response\.blob\(\)/);
+  assert.match(app, /Facebook link recognized\. Direct Facebook video and Reel downloads are not currently supported\./);
+  assert.match(app, /response\.json\(\)\.catch\(\(\) => \(\{\}\)\)/);
+  assert.match(app, /catch \(error\) \{ showToast\(error\.message/);
+  assert.match(app, /finally \{ button\.disabled = false/);
   assert.match(html, /Direct downloads work only for approved HTTPS file hosts/);
   assert.equal((html.match(/download unavailable/g) || []).length, 6);
 });

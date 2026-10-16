@@ -2,6 +2,10 @@ const form = document.querySelector('#download-form');
 const input = document.querySelector('#media-url');
 const toast = document.querySelector('#toast');
 const showToast = (message) => { toast.textContent = message; toast.classList.add('show'); window.clearTimeout(showToast.timer); showToast.timer = window.setTimeout(() => toast.classList.remove('show'), 5000); };
+const inspectionMessage = (result) => {
+  if (result.provider === 'facebook' || result.platform === 'Facebook') return 'Facebook link recognized. Direct Facebook video and Reel downloads are not currently supported.';
+  return result.message || `${result.platform || 'This platform'} link recognized. Direct downloads are not currently supported.`;
+};
 document.querySelector('#clear-btn').addEventListener('click', () => { input.value = ''; input.focus(); });
 document.querySelector('#paste-btn').addEventListener('click', async () => { try { input.value = await navigator.clipboard.readText(); input.focus(); } catch { showToast('Clipboard access is unavailable. Paste the link manually.'); } });
 document.querySelector('.menu-toggle').addEventListener('click', (event) => { const button = event.currentTarget; const menu = document.querySelector('#site-menu'); const open = menu.classList.toggle('open'); button.setAttribute('aria-expanded', String(open)); });
@@ -20,8 +24,8 @@ form.addEventListener('submit', async (event) => {
     const platform = Object.values(window.AREWA_PLATFORMS || {}).find((item) => item.hosts.includes(parsed.hostname.toLowerCase()) || item.hosts.some((host) => parsed.hostname.toLowerCase().endsWith(`.${host}`)));
     if (platform) {
       const response = await fetch('/api/inspect', { method: 'POST', headers: {'content-type':'application/json'}, body: JSON.stringify({url}) });
-      const result = await response.json(); if (!response.ok) throw new Error(result.error || 'We could not inspect that link.');
-      showToast(result.message || `${result.platform} link recognized. Direct ${result.platform} downloads are not currently supported.`);
+      const result = await response.json().catch(() => ({})); if (!response.ok) throw new Error(result.error || 'We could not inspect that link.');
+      showToast(inspectionMessage(result));
     } else {
       button.innerHTML = '<span>Downloading…</span><span aria-hidden="true">↓</span>';
       const response = await fetch('/api/download', { method: 'POST', headers: {'content-type':'application/json'}, body: JSON.stringify({url}) });
