@@ -19,7 +19,7 @@ form.addEventListener('submit', async (event) => {
     const response = await fetch('/api/inspect', { method: 'POST', headers: {'content-type':'application/json'}, body: JSON.stringify({url}) });
     const result = await response.json();
     if (!response.ok) throw new Error(result.error || 'We could not inspect that link.');
-    showToast(result.message || `${result.platform} link recognized. ${result.integration?.status || 'No authorized download option is configured.'}`);
+    showToast(result.message || `${result.platform} link recognized. Direct ${result.platform} downloads are not currently supported.`);
   } catch (error) { showToast(error.message || 'Something went wrong. Try again.'); }
   finally { button.disabled = false; button.innerHTML = original; }
 });

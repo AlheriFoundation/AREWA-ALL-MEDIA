@@ -113,5 +113,5 @@ export async function onRequestPost(context) {
   const result = recognizeProvider(body?.url);
   if (result.error) return json({error: result.error}, 400);
   // No provider credential is shipped in this project. This is intentionally honest until an authorized API is configured.
-  return json({ platform: result.provider.label, provider: result.provider.id, supported: true, integration: { status: 'unavailable', download: false }, message: `${result.provider.label} link recognized. An authorized download integration is not configured yet.` });
+  return json({ platform: result.provider.label, provider: result.provider.id, supported: true, integration: { status: 'unavailable', download: false }, message: `${result.provider.label} link recognized. Direct ${result.provider.label} downloads are not currently supported.` });
 }
