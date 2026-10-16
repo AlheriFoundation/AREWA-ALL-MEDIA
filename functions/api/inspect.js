@@ -65,7 +65,7 @@ function parseIpv6(hostname) {
   return pieces.length === 2 ? [...left, ...Array(8 - left.length - right.length).fill(0), ...right] : left;
 }
 
-function isUnsafeDestination(hostname) {
+export function isUnsafeDestination(hostname) {
   const lower = hostname.toLowerCase();
   if (['localhost', '127.0.0.1', '::1'].includes(lower) || lower.endsWith('.localhost') || lower.endsWith('.local') || lower.endsWith('.internal') || lower.endsWith('.home.arpa')) return true;
   const ipv4 = parseIpv4(lower);

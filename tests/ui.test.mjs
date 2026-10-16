@@ -16,3 +16,10 @@ test('focus-visible styling and mobile menu keyboard behavior exist', () => {
   assert.match(app, /event\.key === 'Escape'/);
   assert.match(app, /event\.target\.closest\('a'\)/);
 });
+
+test('frontend separates social inspection from direct-file downloading', () => {
+  assert.match(app, /fetch\('\/api\/inspect'/);
+  assert.match(app, /fetch\('\/api\/download'/);
+  assert.match(app, /response\.blob\(\)/);
+  assert.match(html, /Direct downloads work only for approved HTTPS file hosts/);
+});

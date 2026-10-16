@@ -8,6 +8,7 @@ Production-oriented starter for **Arewa All Media Downloader** — “One Link. 
 - Informational About, Privacy, Terms, and Contact pages.
 - Cloudflare Pages Functions endpoint at `POST /api/inspect`.
 - Vercel-compatible adapters at `api/inspect.js` and `api/download.js`; the original Cloudflare Functions remain available for Pages deployments.
+- Direct-file downloads are available only through the Vercel Node route when `DIRECT_FILE_ORIGINS` contains exact, approved HTTPS origins. No social-media download integration is provided.
 - Provider adapter table recognizes TikTok, Instagram, Facebook, YouTube, X, and Pinterest.
 - Security headers, URL length limits, HTTPS/public-host validation, explicit host allowlist, no server-side fetching, and honest unavailable-integration responses.
 - A small per-isolate request limiter (20 inspections/minute/IP) as defense in depth; configure Cloudflare WAF/Rate Limiting for durable distributed enforcement.
@@ -46,6 +47,20 @@ The inspection endpoint must never fetch a user-provided URL. A future provider 
 The project can be deployed to a temporary Vercel URL without changing the source placeholders. Vercel automatically serves the static files and maps `api/inspect.js` and `api/download.js` to `/api/inspect` and `/api/download`. The adapters translate Vercel's Node request/response objects to the existing Fetch-based handlers.
 
 `vercel.json` applies `X-Robots-Tag: noindex, nofollow, noarchive` to keep temporary previews out of search indexes. The canonical tags, Open Graph URLs, `robots.txt`, `sitemap.xml`, and contact email intentionally remain placeholders until the actual Vercel URL and contact identity are confirmed. Before any public production launch, replace those values and remove or revise the preview noindex policy.
+
+## Direct-file downloads
+
+The Vercel-only `POST /api/download` route accepts HTTPS URLs only when their exact origin is configured in the `DIRECT_FILE_ORIGINS` environment variable, for example a comma-separated list of approved file hosts. Do not put arbitrary user destinations in this variable. Social URLs are recognized separately and are rejected by the download route.
+
+The route uses a DNS-validated HTTPS request with no redirect following, a 15-second timeout, a required verified `Content-Length`, a 25 MB maximum response, an allowlist of binary/media MIME types, HTML/error-page detection, safe URL-derived filenames, `Content-Disposition: attachment`, and bounded streaming. Chunked responses without a verifiable size are rejected. It does not use provider APIs and does not bypass authentication, anti-bot controls, DRM, or platform restrictions.
+
+Configure the variable in Vercel only after confirming that each origin is authorized to serve the files:
+
+```bash
+vercel env add DIRECT_FILE_ORIGINS
+```
+
+The current deployment has no configured origin value, so it should return `503 Direct-file downloads are not configured for this deployment` until an approved origin is supplied. The Cloudflare Pages Function remains disabled because the DNS-pinned Node HTTPS path is Vercel-specific.
 
 ## Cloudflare Pages deployment
 

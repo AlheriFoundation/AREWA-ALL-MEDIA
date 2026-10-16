@@ -16,10 +16,20 @@ form.addEventListener('submit', async (event) => {
   if (!url) { showToast('Paste a media link to get started.'); input.focus(); return; }
   const button = form.querySelector('button[type="submit"]'); const original = button.innerHTML; button.disabled = true; button.innerHTML = '<span>Checking link…</span><span aria-hidden="true">◌</span>';
   try {
-    const response = await fetch('/api/inspect', { method: 'POST', headers: {'content-type':'application/json'}, body: JSON.stringify({url}) });
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.error || 'We could not inspect that link.');
-    showToast(result.message || `${result.platform} link recognized. Direct ${result.platform} downloads are not currently supported.`);
+    let parsed; try { parsed = new URL(url); } catch { throw new Error('That is not a valid HTTPS direct-file URL.'); }
+    const platform = Object.values(window.AREWA_PLATFORMS || {}).find((item) => item.hosts.includes(parsed.hostname.toLowerCase()) || item.hosts.some((host) => parsed.hostname.toLowerCase().endsWith(`.${host}`)));
+    if (platform) {
+      const response = await fetch('/api/inspect', { method: 'POST', headers: {'content-type':'application/json'}, body: JSON.stringify({url}) });
+      const result = await response.json(); if (!response.ok) throw new Error(result.error || 'We could not inspect that link.');
+      showToast(result.message || `${result.platform} link recognized. Direct ${result.platform} downloads are not currently supported.`);
+    } else {
+      button.innerHTML = '<span>Downloading…</span><span aria-hidden="true">↓</span>';
+      const response = await fetch('/api/download', { method: 'POST', headers: {'content-type':'application/json'}, body: JSON.stringify({url}) });
+      if (!response.ok) { const result = await response.json().catch(() => ({})); throw new Error(result.error || 'This direct file could not be downloaded safely.'); }
+      const blob = await response.blob(); if (!blob.size) throw new Error('The download was empty.');
+      const disposition = response.headers.get('content-disposition') || ''; const match = disposition.match(/filename="([^"]+)"/i); const filename = match?.[1] || 'download';
+      const objectUrl = URL.createObjectURL(blob); const anchor = document.createElement('a'); anchor.href = objectUrl; anchor.download = filename; document.body.appendChild(anchor); anchor.click(); anchor.remove(); URL.revokeObjectURL(objectUrl); showToast('Download started.');
+    }
   } catch (error) { showToast(error.message || 'Something went wrong. Try again.'); }
   finally { button.disabled = false; button.innerHTML = original; }
 });
