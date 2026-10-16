@@ -31,6 +31,15 @@ test('Vercel inspect accepts parsed bodies and raw JSON streams', async () => {
   }
 });
 
+test('Vercel handlers accept a raw stream exposed as req.body without consuming it twice', async () => {
+  const url = 'https://www.youtube.com/watch?v=stream-body';
+  const inspect = await responseFor(inspectHandler, { method: 'POST', body: Readable.from([JSON.stringify({ url })]) });
+  const download = await responseFor(downloadHandler, { method: 'POST', body: Readable.from([JSON.stringify({ url })]) });
+  assert.equal(inspect.response.statusCode, 200);
+  assert.equal(download.response.statusCode, 400);
+  assert.equal(JSON.parse(download.response.body).error, 'Social-media links are recognized but direct-file downloads are not supported.');
+});
+
 test('Vercel endpoints reject malformed, missing, and oversized JSON safely', async () => {
   const malformed = await responseFor(inspectHandler, { method: 'POST', stream: Readable.from(['not-json']) });
   const missing = await responseFor(downloadHandler, { method: 'POST', body: {} });
