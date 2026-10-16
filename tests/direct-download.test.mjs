@@ -14,6 +14,12 @@ test('downloads an allowed file response with safe metadata', async () => {
   const chunks = []; for await (const chunk of result.body) chunks.push(chunk); assert.equal(Buffer.concat(chunks).toString(), '%PDF-1.7\n');
 });
 
+test('downloads an allowed direct video response without a social platform integration', async () => {
+  const result = await downloadDirectFile({ rawUrl: `${origin}/media/sample.mp4`, allowedOrigins: [origin], requestImpl: requestWith(response(200, {'content-type':'video/mp4', 'content-length':'11'}, [Buffer.from('video-bytes')])) });
+  assert.equal(result.contentType, 'video/mp4'); assert.equal(result.filename, 'sample.mp4'); assert.equal(result.contentLength, 11);
+  const chunks = []; for await (const chunk of result.body) chunks.push(chunk); assert.equal(Buffer.concat(chunks).toString(), 'video-bytes');
+});
+
 test('rejects invalid, private, and unapproved URLs before connecting', async () => {
   assert.throws(() => validateDirectFileUrl('not-a-url', [origin]), /valid direct/);
   assert.throws(() => validateDirectFileUrl('https://10.0.0.1/file.pdf', ['https://10.0.0.1']), /unsafe/);
@@ -25,6 +31,7 @@ test('rejects redirects, unsupported MIME, oversized files, and malformed respon
   await expectStatus(downloadDirectFile({ rawUrl: `${origin}/file.html`, allowedOrigins: [origin], requestImpl: requestWith(response(200, {'content-type':'text/html', 'content-length':'24'}, [Buffer.from('<html>challenge</html>')])) }), 415);
   await expectStatus(downloadDirectFile({ rawUrl: `${origin}/large.pdf`, allowedOrigins: [origin], requestImpl: requestWith(response(200, {'content-type':'application/pdf', 'content-length': String(25 * 1024 * 1024 + 1)})) }), 413);
   await expectStatus(downloadDirectFile({ rawUrl: `${origin}/bad.pdf`, allowedOrigins: [origin], requestImpl: requestWith({statusCode:200, headers:{'content-type':'application/pdf'}, body:null}) }), 502);
+  await expectStatus(downloadDirectFile({ rawUrl: `${origin}/fractional.pdf`, allowedOrigins: [origin], requestImpl: requestWith(response(200, {'content-type':'application/pdf', 'content-length':'1.5'})) }), 502);
 });
 
 test('rejects empty files, upstream errors, and timeouts honestly', async () => {

@@ -22,4 +22,5 @@ test('frontend separates social inspection from direct-file downloading', () => 
   assert.match(app, /fetch\('\/api\/download'/);
   assert.match(app, /response\.blob\(\)/);
   assert.match(html, /Direct downloads work only for approved HTTPS file hosts/);
+  assert.equal((html.match(/download unavailable/g) || []).length, 6);
 });
